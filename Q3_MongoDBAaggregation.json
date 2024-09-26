@@ -1,0 +1,56 @@
+db.sales.aggregate([
+  // Step 1: Unwind the items array
+  {
+    "$unwind": "$items"
+  },
+  
+  // Step 2: Add fields for month and item revenue (quantity * price)
+  {
+    "$addFields": {
+      "month": {
+        "$dateToString": {
+          "format": "%Y-%m",
+          "date": "$date"
+        }
+      },
+      "itemRevenue": {
+        "$multiply": ["$items.quantity", "$items.price"]
+      }
+    }
+  },
+
+  // Step 3: Group by store and month
+  {
+    "$group": {
+      "_id": {
+        "store": "$store",
+        "month": "$month"
+      },
+      "totalRevenue": {
+        "$sum": "$itemRevenue"
+      },
+      "averagePrice": {
+        "$avg": "$items.price"
+      }
+    }
+  },
+
+  // Step 4: Project the output in the desired format
+  {
+    "$project": {
+      "store": "$_id.store",
+      "month": "$_id.month",
+      "totalRevenue": 1,
+      "averagePrice": 1,
+      "_id": 0
+    }
+  },
+
+  // Step 5: Sort by store and month in ascending order
+  {
+    "$sort": {
+      "store": 1,
+      "month": 1
+    }
+  }
+])
